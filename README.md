@@ -46,7 +46,3 @@ python -m pip install flask
 
 <!-- end list -->
 
-```
-
-Would you like to add a **License** section or a **Contact** section to the bottom of this README?
-```
