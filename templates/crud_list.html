@@ -1,0 +1,31 @@
+<button onclick="window.location.href='/'">Home</button>
+
+<h2>{{ module | capitalize }} Records</h2>
+
+<a href="/{{ module }}/add">Add New</a>
+<br><br>
+
+<form method="GET" action="">
+    <input type="text" name="keyword" placeholder="Search..." value="{{ keyword }}">
+    <button type="submit">Search</button>
+</form>
+
+<table border="1" cellpadding="10">
+    <tr>
+        {% for f in fields %}
+            <th>{{ f }}</th>
+        {% endfor %}
+    </tr>
+
+    {% for r in rows %}
+    <tr>
+        {% for col in r %}
+            <td>{{ col }}</td>
+        {% endfor %}
+        <td>
+            <a href="/{{ module }}/edit/{{ r[0] }}">Edit</a>
+            <a href="/{{ module }}/delete/{{ r[0] }}">Delete</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>

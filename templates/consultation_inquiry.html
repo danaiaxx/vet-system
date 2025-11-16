@@ -1,0 +1,34 @@
+<button onclick="window.location.href='/'">Home</button>
+
+<h2>Consultation Inquiry</h2>
+
+<form method="get" action="/consultation/inquiry">
+    <label>Vet Specialization: <input type="text" name="vetSpecial"></label><br>
+    <label>Pet ID: <input type="text" name="petID"></label><br>
+    <label>Pet Owner ID: <input type="text" name="petOwnerID"></label><br>
+    <label>Vet ID: <input type="text" name="vetID"></label><br>
+    <label>Start Date: <input type="text" name="startDate"></label>
+    <label>End Date: <input type="text" name="endDate"></label><br><br>
+    <button type="submit">Search</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>Consult ID</th>
+        <th>Pet ID</th>
+        <th>Vet ID</th>
+        <th>Consult Date</th>
+        <th>Diagnoses</th>
+        <th>Prescription</th>
+    </tr>
+    {% for c in consultations %}
+    <tr>
+        <td>{{ c[0] }}</td>
+        <td>{{ c[1] }}</td>
+        <td>{{ c[2] }}</td>
+        <td>{{ c[3] }}</td>
+        <td>{{ c[4] }}</td>
+        <td>{{ c[5] }}</td>
+    </tr>
+    {% endfor %}
+</table>

@@ -1,0 +1,18 @@
+<button onclick="window.location.href='/'">Home</button>
+<button onclick="window.location.href='/back?module={{ module }}'">Back</button>
+
+
+<h2>{{ action }} {{ module | capitalize }}</h2>
+
+{% if error %}
+    <p style="color: red; font-weight: bold;">Error: {{ error }}</p>
+{% endif %}
+
+<form method="POST">
+    {% for f in fields %}
+        <label>{{ f }}</label><br>
+        <input type="text" name="{{ f }}" value="{{ row[loop.index0] if row else '' }}" required>
+        <br><br>
+    {% endfor %}
+    <button type="submit">{{ action }}</button>
+</form>

@@ -1,0 +1,163 @@
+from flask import Flask, render_template, request, redirect
+import sqlite3
+
+app = Flask(__name__)
+DB = "Clinic.db"
+
+def db():
+    return sqlite3.connect(DB)
+
+# ===== Universal CRUD helpers =====
+def load_table(table, keyword=None, search_fields=None):
+    conn = db()
+    query = f"SELECT * FROM {table} WHERE deleted=0"
+    params = []
+    if keyword and search_fields:
+        query += " AND (" + " OR ".join([f"{f} LIKE ?" for f in search_fields]) + ")"
+        params = [f"%{keyword}%"] * len(search_fields)
+    rows = conn.execute(query, params).fetchall()
+    conn.close()
+    return rows
+
+def get_record(table, pk, val):
+    conn = db()
+    row = conn.execute(f"SELECT * FROM {table} WHERE {pk}=?", (val,)).fetchone()
+    conn.close()
+    return row
+
+def insert_record(table, fields, values):
+    conn = db()
+    conn.execute(
+        f"INSERT INTO {table} ({','.join(fields)}) VALUES ({','.join(['?']*len(values))})",
+        values
+    )
+    conn.commit()
+    conn.close()
+
+def update_record(table, fields, values, pk, val):
+    conn = db()
+    conn.execute(
+        f"UPDATE {table} SET {','.join([f+'=?' for f in fields])} WHERE {pk}=?",
+        values + [val]
+    )
+    conn.commit()
+    conn.close()
+
+def delete_record(table, pk, val):
+    conn = db()
+    conn.execute(f"UPDATE {table} SET deleted=1 WHERE {pk}=?", (val,))
+    conn.commit()
+    conn.close()
+
+def id_exists(table, pk, val):
+    conn = db()
+    count = conn.execute(f"SELECT COUNT(*) FROM {table} WHERE {pk}=?", (val,)).fetchone()[0]
+    conn.close()
+    return count > 0
+
+# ===== Config for modules =====
+modules = {
+    "vet": {"table":"Veterinarian","fields":["vetID","vetFName","vetLName","vetAddress","vetSpecial"],"search":["vetID","vetFName","vetLName"]},
+    "owner":{"table":"PetOwner","fields":["petOwnerID","petOwnerFName","petOwnerLName","petOwnerBDate","petOwnerTelNo"],"search":["petOwnerID","petOwnerFName","petOwnerLName","petOwnerBDate","petOwnerTelNo"]},
+    "pet":{"table":"Pet","fields":["petID","petName","petType","petBreed","petBDate","petOwnerID"],"search":["petID","petName","petType","petBreed","petBDate","petOwnerID"]},
+    "consultation":{"table":"Consultation","fields":["consultID","petID","vetID","consultDate","diagnoses","prescription"],"search":["consultID","petID","vetID","consultDate","diagnoses","prescription"]}
+}
+
+# ===== Generic Routes =====
+@app.route("/<module>")
+def list_module(module):
+    config = modules[module]
+    keyword = request.args.get("keyword","")
+    rows = load_table(config["table"], keyword, config["search"])
+    return render_template("crud_list.html", rows=rows, fields=config["fields"], module=module, keyword=keyword)
+
+@app.route("/<module>/add", methods=["GET","POST"])
+def add_module(module):
+    config = modules[module]
+    if request.method=="POST":
+        values = [request.form[f] for f in config["fields"]]
+        pk_val = values[0]
+
+        # Check PK
+        if id_exists(config["table"], config["fields"][0], pk_val):
+            error = f"{config['fields'][0]} {pk_val} already exists!"
+            return render_template("crud_form.html", fields=config["fields"], module=module, action="Add", error=error)
+
+        # Foreign key check for pet or consultation
+        if module=="pet":
+            if not id_exists("PetOwner","petOwnerID",values[5]):
+                error = f"Owner ID {values[5]} does not exist."
+                return render_template("crud_form.html", fields=config["fields"], module=module, action="Add", error=error)
+        if module=="consultation":
+            if not id_exists("Pet","petID",values[1]) or not id_exists("Veterinarian","vetID",values[2]):
+                error = "Pet or Vet ID does not exist."
+                return render_template("crud_form.html", fields=config["fields"], module=module, action="Add", error=error)
+
+        insert_record(config["table"], config["fields"], values)
+        return redirect(f"/{module}")
+    return render_template("crud_form.html", fields=config["fields"], module=module, action="Add")
+
+@app.route("/<module>/edit/<id>", methods=["GET","POST"])
+def edit_module(module,id):
+    config = modules[module]
+    row = get_record(config["table"], config["fields"][0], id)
+    if request.method=="POST":
+        values = [request.form[f] for f in config["fields"]]
+        update_record(config["table"], config["fields"], values, config["fields"][0], id)
+        return redirect(f"/{module}")
+    return render_template("crud_form.html", fields=config["fields"], module=module, row=row, action="Edit")
+
+@app.route("/<module>/delete/<id>")
+def delete_module(module,id):
+    config = modules[module]
+    delete_record(config["table"], config["fields"][0], id)
+    return redirect(f"/{module}")
+
+@app.route("/consultation/inquiry", methods=["GET","POST"])
+def consultation_inquiry():
+    conn = db()
+    query = """
+    SELECT c.consultID, c.petID, c.vetID, c.consultDate, c.diagnoses, c.prescription
+    FROM Consultation c
+    JOIN Pet p ON c.petID = p.petID
+    JOIN Veterinarian v ON c.vetID = v.vetID
+    WHERE c.deleted=0
+    """
+    params = []
+
+    # Get search inputs
+    vet_special = request.args.get("vetSpecial", "").strip()
+    pet_id = request.args.get("petID", "").strip()
+    owner_id = request.args.get("petOwnerID", "").strip()
+    vet_id = request.args.get("vetID", "").strip()
+    start_date = request.args.get("startDate", "").strip()
+    end_date = request.args.get("endDate", "").strip()
+
+    # Filters
+    if vet_special:
+        query += " AND v.vetSpecial LIKE ?"
+        params.append(f"%{vet_special}%")
+    if pet_id:
+        query += " AND c.petID = ?"
+        params.append(pet_id)
+    if owner_id:
+        query += " AND p.petOwnerID = ?"
+        params.append(owner_id)
+    if vet_id:
+        query += " AND c.vetID = ?"
+        params.append(vet_id)
+    if start_date and end_date:
+        query += " AND c.consultDate BETWEEN ? AND ?"
+        params.extend([start_date, end_date])
+
+    consultations = conn.execute(query, params).fetchall()
+    conn.close()
+
+    return render_template("consultation_inquiry.html", consultations=consultations)
+
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+if __name__=="__main__":
+    app.run(debug=True)
