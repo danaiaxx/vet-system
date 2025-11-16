@@ -2,7 +2,9 @@
 
 <h2>Consultation Inquiry</h2>
 
-<form method="get" action="/consultation/inquiry">
+<h4>Search for a consultation inquiry with one of these:</h4>
+
+<form method="GET" action="/consultation/inquiry">
     <label>Vet Specialization: <input type="text" name="vetSpecial"></label><br>
     <label>Pet ID: <input type="text" name="petID"></label><br>
     <label>Pet Owner ID: <input type="text" name="petOwnerID"></label><br>
@@ -23,7 +25,7 @@
     </tr>
     {% for c in consultations %}
     <tr>
-        <td>{{ c[0] }}</td>
+        <td>{{ c[0] }}</td> <!--table columns of Consultation-->
         <td>{{ c[1] }}</td>
         <td>{{ c[2] }}</td>
         <td>{{ c[3] }}</td>

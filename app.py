@@ -83,7 +83,7 @@ def vet_add():
     if request.method == "POST":
         # 1. Get the values and the specific ID value
         values = [request.form[f] for f in fields]
-        vet_id = values[0] # Assuming vetID is the first field
+        vet_id = values[0] # Assuming vetID is the first field; int(values[0]) if integer
 
         # 2. Check if ID exists (even if soft deleted)
         if id_exists("Veterinarian", "vetID", vet_id):
@@ -275,6 +275,7 @@ def consultation_edit(id):
     row = get_record("Consultation","consultID", id)
     if request.method == "POST":
         values = [request.form[f] for f in fields]
+        
         update_record("Consultation", fields, values, "consultID", id)
         return redirect("/consultation")
     return render_template("crud_form.html", fields=fields, module="consultation", row=row, action="Edit")
