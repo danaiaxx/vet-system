@@ -10,9 +10,14 @@
     <label>Pet Owner ID: <input type="text" name="petOwnerID"></label><br>
     <label>Vet ID: <input type="text" name="vetID"></label><br>
     <label>Start Date: <input type="text" name="startDate"></label>
-    <label>End Date: <input type="text" name="endDate"></label><br><br>
+    <label>End Date: <input type="text" name="endDate"></label><br>
     <button type="submit">Search</button>
 </form>
+
+<!--displays number of inquiries-->
+{% if consultations is not none %}
+    <p style="color: blue; font-weight: bold;"><strong>{{ inquiry_count }} result{{ 's' if inquiry_count != 1 else '' }} found.</strong></p>
+{% endif %}
 
 <table border="1">
     <tr>
@@ -25,7 +30,7 @@
     </tr>
     {% for c in consultations %}
     <tr>
-        <td>{{ c[0] }}</td> <!--table columns of Consultation-->
+        <td>{{ c[0] }}</td> <!--table columns of Consultation (kung pila kabuok columns mao say ibutang diri)-->
         <td>{{ c[1] }}</td>
         <td>{{ c[2] }}</td>
         <td>{{ c[3] }}</td>
