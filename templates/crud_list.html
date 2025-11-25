@@ -19,7 +19,7 @@
 
     {% for r in rows %}
     <tr>
-        {% for col in r %}
+        {% for col in r[:-1] %}
             <td>{{ col }}</td>
         {% endfor %}
         <td>
